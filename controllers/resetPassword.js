@@ -75,19 +75,19 @@ exports.resetPassword = async (req, res) => {
             });
         }
 
-        // Find the most recent OTP for the user
-        const recentOtp = await OTP.findOne({ email }).sort({ createdAt: -1 }).limit(1);
+        // Find the most recent password reset OTP for the user
+        const recentOtp = await OTP.findOne({ email, type: 'passwordReset' }).sort({ createdAt: -1 });
 
         // Validate OTP existence
         if (!recentOtp) {
             return res.status(401).json({
                 success: false,
-                message: 'OTP not found or expired'
+                message: 'OTP not found or expired, please request a new OTP'
             });
         }
 
-        // Validate OTP matches
-        if (otp !== recentOtp.otp) {
+        // Validate OTP matches (convert both to string for safe comparison)
+        if (String(otp).trim() !== String(recentOtp.otp).trim()) {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid OTP'

@@ -93,17 +93,19 @@ exports.signup = async (req, res) => {
             });
         }
 
-        // Find the most recent OTP for the user
-        const recentOtp = await OTP.findOne({ email }).sort({ createdAt: -1 }).limit(1);
+        // Find the most recent verification OTP for the user
+        const recentOtp = await OTP.findOne({ email, type: 'verification' }).sort({ createdAt: -1 });
 
         // Validate OTP existence
-        if (!recentOtp || recentOtp.length == 0) {
+        if (!recentOtp) {
             return res.status(400).json({
                 success: false,
-                message: 'OTP not found in DB, please try again'
+                message: 'OTP not found or expired, please request a new OTP'
             });
-        } else if (otp !== recentOtp.otp) {
-            // Invalid OTP
+        }
+        
+        // Compare OTP (convert both to string for safe comparison)
+        if (String(otp).trim() !== String(recentOtp.otp).trim()) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid OTP'
