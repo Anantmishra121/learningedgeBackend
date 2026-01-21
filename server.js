@@ -24,8 +24,10 @@ app.use(express.json()); // Parse JSON request bodies
 app.use(cookieParser());
 app.use(
     cors({
-        origin: process.env.FRONTEND_URL || "http://localhost:5173", // Frontend URL
-        credentials: true
+        origin: ["https://learningedge.vercel.app", "http://localhost:5173", "http://localhost:3000"],
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
     })
 );
 app.use(
