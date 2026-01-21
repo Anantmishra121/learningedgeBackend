@@ -20,43 +20,44 @@ const OTPSchema = new mongoose.Schema({
     },
     createdAt: {
         type: Date,
-        default: Date.now(),
+        default: Date.now, // Remove parentheses - use function reference, not function call
         expires: 5 * 60, // The document will be automatically deleted after 5 minutes of its creation time
     }
 
 });
 
-// Function to send verification email
+// Function to send verification email (non-blocking)
 async function sendVerificationEmail(email, otp) {
     try {
         const name = email.split('@')[0].split('.').map(part => part.replace(/\d+/g, '')).join(' ');
-        const mailResponse = mailSender(email, 'OTP Verification Email', otpTemplate(otp, name));
+        await mailSender(email, 'OTP Verification Email', otpTemplate(otp, name));
+        console.log('Verification email sent successfully to:', email);
     } catch (error) {
-        throw error;
+        console.error('Error sending verification email:', error);
+        // Don't throw - let the OTP save succeed even if email fails
     }
 }
 
-// Function to send password reset email
+// Function to send password reset email (non-blocking)
 async function sendPasswordResetEmail(email, otp) {
     try {
         const name = email.split('@')[0].split('.').map(part => part.replace(/\d+/g, '')).join(' ');
-        const mailResponse = mailSender(email, 'Password Reset OTP', passwordResetOtpTemplate(otp, name));
+        await mailSender(email, 'Password Reset OTP', passwordResetOtpTemplate(otp, name));
+        console.log('Password reset email sent successfully to:', email);
     } catch (error) {
-        throw error;
+        console.error('Error sending password reset email:', error);
+        // Don't throw - let the OTP save succeed even if email fails
     }
 }
 
-// Pre-save middleware to send email when new OTP is created
-OTPSchema.pre('save', async function(next) {
-    // Only send an email when a new document is created
-    if (this.isNew) {
-        if (this.type === 'passwordReset') {
-            await sendPasswordResetEmail(this.email, this.otp);
-        } else {
-            await sendVerificationEmail(this.email, this.otp);
-        }
+// Post-save middleware to send email AFTER OTP is saved (non-blocking)
+OTPSchema.post('save', function(doc) {
+    // Send email asynchronously without blocking the response
+    if (doc.type === 'passwordReset') {
+        sendPasswordResetEmail(doc.email, doc.otp);
+    } else {
+        sendVerificationEmail(doc.email, doc.otp);
     }
-    next();
 });
 
 module.exports = mongoose.model('OTP', OTPSchema);
