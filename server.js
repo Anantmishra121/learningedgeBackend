@@ -40,9 +40,23 @@ app.use(
 // Server configuration
 const PORT = process.env.PORT || 5000;
 
-// Establish connections
-connectDB();
+// Initialize cloudinary
 cloudinaryConnect();
+
+// Middleware to ensure database connection for each request (serverless)
+app.use(async (req, res, next) => {
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        console.error('Database connection error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Database connection failed',
+            error: error.message
+        });
+    }
+});
 
 // Mount routes
 app.use('/api/v1/auth', userRoutes);
